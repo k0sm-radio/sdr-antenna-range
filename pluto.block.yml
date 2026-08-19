@@ -24,7 +24,7 @@ templates:
         ${ gui_hint() % win }'
     callbacks: []
 
-documentation: /home/aflowers/pluto-antenna-range/pluto.py
-grc_source: /home/aflowers/pluto-antenna-range/pluto-antenna-range.grc
+documentation: pluto.py
+grc_source: pluto-antenna-range.grc
 
 file_format: 1

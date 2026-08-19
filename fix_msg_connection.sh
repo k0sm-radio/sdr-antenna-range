@@ -1,11 +1,10 @@
 #!/bin/bash
-# Script to add message connection to generated pluto.py
-
-# Check if the message connection already exists
-if grep -q "msg_connect.*stream_to_msg_0.*audio_tone_gen_0" /home/aflowers/Desktop/pluto/pluto.py; then
-    echo "Message connection already exists in pluto.py"
-else
-    # Add the message connection after the stream connections
-    sed -i '/self.connect((self.blocks_add_const_vxx_0, 0), (self.stream_to_msg_0, 0))/a\        \n        ##################################################\n        # Asynch Message Connections\n        ##################################################\n        self.msg_connect((self.stream_to_msg_0, '\''msg_out'\''), (self.audio_tone_gen_0, '\''db_in'\''))' /home/aflowers/Desktop/pluto/pluto.py
-    echo "Message connection added to pluto.py"
-fi
+# Compatibility shim - the real patching logic now lives in
+# fix_msg_connection.py (plain Python 3, works identically on macOS,
+# Linux, and Windows). This wrapper exists so anything that still calls
+# ./fix_msg_connection.sh keeps working. See README.md "Revision History"
+# (v1.1) for why this changed - the old version used GNU-sed-only syntax
+# and a path hardcoded to the original author's machine, neither of which
+# work on macOS.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 "$SCRIPT_DIR/fix_msg_connection.py" "$@"
