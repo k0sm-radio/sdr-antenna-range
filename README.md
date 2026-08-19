@@ -21,19 +21,51 @@ This flowgraph receives signals from an ADALM Pluto SDR and provides real-time s
 
 ## Requirements
 
-- Ubuntu 24.04 (or similar)
-- GNU Radio 3.10+
+- GNU Radio 3.10+ (with the `gr-iio` module)
 - ADALM Pluto SDR connected via USB (clones should work)
-- Required packages:
-  ```bash
-  sudo apt install gnuradio libgnuradio-iio3.10.9t64 libiio-utils python3-libiio libad9361-0
-  ```
+- One of: Ubuntu 24.04 (or similar Linux), or macOS 12 (Monterey) or later, Apple Silicon or Intel
+
+### Ubuntu / Linux
+
+```bash
+sudo apt install gnuradio libgnuradio-iio3.10.9t64 libiio-utils python3-libiio libad9361-0
+```
+
+### macOS
+
+macOS has no single-command package equivalent to `apt install`. Two options, in order of preference:
+
+**Option A - conda-forge / radioconda (recommended).** This is the only macOS path that's both current and pre-built for both Intel and Apple Silicon Macs. `gr-iio` ships as the `gnuradio-iio` conda-forge package.
+
+```bash
+# If you don't already have conda/mamba, install Miniforge first:
+#   https://github.com/conda-forge/miniforge
+conda create -n gnuradio -c conda-forge gnuradio gnuradio-iio
+conda activate gnuradio
+```
+
+On Apple Silicon, make sure your conda installation is running natively as `osx-arm64` (the default with a current Miniforge install) rather than under Rosetta - it's faster and avoids a class of subtle library-mismatch problems. Check with:
+
+```bash
+conda info | grep platform
+```
+
+You can also use [radioconda](https://github.com/ryanvolz/radioconda), a ready-made GNU Radio conda distribution, instead of building the environment up from conda-forge by hand.
+
+**Option B - Homebrew (alternative).** Homebrew's core `gnuradio` formula does **not** include `gr-iio` (the module that talks to the Pluto):
+
+```bash
+brew install gnuradio
+```
+
+You'll then need `gr-iio` separately, either via the community tap [`ttrftech/homebrew-adalm-pluto`](https://github.com/ttrftech/homebrew-adalm-pluto) (last verified against macOS Sierra 10.12 - treat as unmaintained/experimental on current macOS) or by building `libiio`, `libad9361-iio`, and `gr-iio` from source against your Homebrew GNU Radio install. Expect more troubleshooting on this path than with Option A.
 
 ## Hardware Setup
 
-1. Connect ADALM Pluto to USB
-2. Verify connection: `ping 192.168.2.1`
-3. Check IIO device: `iio_info -n 192.168.2.1`
+1. Connect ADALM Pluto to USB.
+2. On macOS, confirm the Pluto's Ethernet compatibility mode is **USB CDC-NCM** (the default on current firmware). The device will then show up in System Settings -> Network, in addition to appearing as a USB serial port and a mass-storage volume. See Analog Devices' [Mac OS X driver notes](https://wiki.analog.com/university/tools/pluto/drivers/osx) if it doesn't appear automatically.
+3. Verify connection: `ping 192.168.2.1`
+4. Check IIO device: `iio_info -n 192.168.2.1`
 
 ## Usage
 
@@ -47,7 +79,7 @@ The easiest way to run the flowgraph is to use the provided script:
 
 Or manually:
 ```bash
-grcc pluto-antenna-range.grc && ./fix_msg_connection.sh && python3 pluto.py
+grcc pluto-antenna-range.grc && python3 fix_msg_connection.py && python3 pluto.py
 ```
 
 ### Using GNU Radio Companion
@@ -59,7 +91,7 @@ gnuradio-companion pluto-antenna-range.grc
 After editing and saving, regenerate the Python file:
 ```bash
 grcc pluto-antenna-range.grc
-./fix_msg_connection.sh
+python3 fix_msg_connection.py
 python3 pluto.py
 ```
 
@@ -94,13 +126,16 @@ python3 pluto.py
 - `pluto_audio_tone_gen_0.py` - Audio tone generator block (auto-generated from GRC)
 - `pluto_epy_block_0.py` - Vector sum block (auto-generated from GRC)
 - `pluto_stream_to_msg_0.py` - Stream to message converter (auto-generated from GRC)
-- `fix_msg_connection.sh` - Script to add message connections to generated Python
+- `fix_msg_connection.py` - Adds the async message connection to generated `pluto.py` (cross-platform: macOS, Linux, Windows)
+- `fix_msg_connection.sh` - Thin compatibility shim that calls `fix_msg_connection.py`, kept for anything still invoking the old script name
 - `run.sh` - Convenience script to run the flowgraph
 - `pluto.block.yml` - Block definition file
 
 ## Troubleshooting
 
 ### Pluto not detected
+
+**Linux:**
 ```bash
 # Check USB connection
 lsusb | grep -i analog
@@ -112,25 +147,57 @@ ip addr show | grep 192.168.2
 iio_info -n 192.168.2.1
 ```
 
+**macOS:**
+```bash
+# Check USB connection
+system_profiler SPUSBDataType | grep -i -A3 analog
+
+# Check network interface (interface name varies - grep across all of them)
+ifconfig | grep -B4 192.168.2
+
+# Test IIO connection
+iio_info -n 192.168.2.1
+```
+
 ### No audio output
 - Check system audio settings
 - Verify audio device is not muted
 - Check that messages are being received (look for "Received dB" in terminal output)
 - If using WSL, ensure audio is properly configured (this is often a pain point)
+- On macOS, GNU Radio's audio sink uses CoreAudio automatically - if you hear nothing, check System Settings -> Sound for the correct output device and confirm your GNU Radio build (conda-forge/radioconda builds do) includes audio support
 
 ### Message connection errors
 If you see "connect called on already connected edge", regenerate the flowgraph:
 ```bash
 grcc pluto-antenna-range.grc
-./fix_msg_connection.sh
+python3 fix_msg_connection.py
 python3 pluto.py
 ```
 
 ## Notes
 
-- The `fix_msg_connection.sh` script is required because GNU Radio Companion doesn't properly generate message connections for embedded Python blocks
+- The `fix_msg_connection.py` script is required because GNU Radio Companion doesn't properly generate message connections for embedded Python blocks
 - Audio tone changes are smoothed over 25ms to prevent clicking
 - The flowgraph uses a throttle block which may cause warnings - this is expected for audio output synchronization
+
+## Revision History
+
+### v1.1 - 2026-08-19 - macOS compatibility
+
+*Rus Healy, K2UA*
+
+- Replaced `fix_msg_connection.sh`'s `sed -i` patch logic with `fix_msg_connection.py`, a plain Python 3 script that behaves identically on macOS (BSD sed), Linux (GNU sed), and Windows. The old GNU-sed-only `-i` syntax would error or silently misbehave under macOS's BSD sed.
+- Fixed `fix_msg_connection.sh` and `pluto.block.yml`, both of which had the original author's absolute Ubuntu path (`/home/aflowers/...`) hardcoded in - broken on any machine but the original author's, not just macOS. `fix_msg_connection.sh` is now a thin shim that resolves its own directory and calls `fix_msg_connection.py`; `pluto.block.yml`'s `documentation:`/`grc_source:` fields now use relative paths.
+- Added a shebang and `set -e` to `run.sh`, and made it `cd` to its own directory first so it works regardless of the caller's working directory.
+- Documented a macOS install path: conda-forge/radioconda (recommended, current, prebuilt for both Intel and Apple Silicon) and Homebrew (alternative, requires a community tap or a from-source build of `gr-iio` since it isn't in Homebrew core).
+- Documented macOS hardware setup (USB CDC-NCM Ethernet compatibility mode) and macOS-specific troubleshooting commands (`ifconfig`/`system_profiler` in place of `ip addr`/`lsusb`).
+- No changes to the flowgraph, embedded Python DSP blocks, or signal processing - this release is packaging/tooling/documentation only.
+
+### v1.0 - Baseline
+
+*Andrew T. Flowers, K0SM*
+
+- Initial Ubuntu 24.04 / GNU Radio 3.10 release of the Pluto Antenna Range flowgraph.
 
 ## License
 
@@ -143,4 +210,3 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
