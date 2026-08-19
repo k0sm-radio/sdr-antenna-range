@@ -1,0 +1,714 @@
+options:
+  parameters:
+    author: ''
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: ''
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: pluto
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: '1'
+    title: Pluto Antenna Range
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [24, 12.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: audio_freq
+  id: variable
+  parameters:
+    comment: ''
+    value: '1000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [976, 36.0]
+    rotation: 0
+    state: enabled
+- name: audio_samplerate
+  id: variable
+  parameters:
+    comment: ''
+    value: '48000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1088, 36.0]
+    rotation: 0
+    state: enabled
+- name: db_ref
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: 0,4,1,1
+    label: Reference antenna (dB)
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '-100'
+    step: '.1'
+    stop: '+100'
+    value: '0'
+    widget: counter
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [656, 20.0]
+    rotation: 0
+    state: true
+- name: decimation
+  id: variable
+  parameters:
+    comment: ''
+    value: '4'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [352, 164.0]
+    rotation: 0
+    state: enabled
+- name: fft_size
+  id: variable
+  parameters:
+    comment: ''
+    value: '512'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [480, 164.0]
+    rotation: 0
+    state: enabled
+- name: rf_lo_freq
+  id: qtgui_msgdigitalnumbercontrol
+  parameters:
+    ThousandsSeparator: ','
+    affinity: ''
+    alias: ''
+    comment: ''
+    gui_hint: 1,1,1,2
+    lbl: LO frequency (Hz)
+    maxFreqHz: '6000000000'
+    maxoutbuf: '0'
+    minFreqHz: '70000000'
+    minoutbuf: '0'
+    outputmsgname: rf_lo_freq
+    readOnly: 'False'
+    relBackgroundColor: black
+    relFontColor: white
+    value: '2073620000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [240, 12.0]
+    rotation: 0
+    state: enabled
+- name: rx_gain
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: 1,4,1,1
+    label: RX Gain
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '1'
+    stop: '71'
+    value: '71'
+    widget: counter
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [520, 12.0]
+    rotation: 0
+    state: true
+- name: sample_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '500000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [40, 164.0]
+    rotation: 0
+    state: enabled
+- name: transition_bw
+  id: variable
+  parameters:
+    comment: ''
+    value: '1000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 164.0]
+    rotation: 0
+    state: enabled
+- name: audio_sink_0
+  id: audio_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    device_name: ''
+    num_inputs: '1'
+    ok_to_block: 'True'
+    samp_rate: audio_samplerate
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [2000, 56.0]
+    rotation: 0
+    state: enabled
+- name: audio_tone_gen_0
+  id: epy_block
+  parameters:
+    _source_code: "import numpy as np\nfrom gnuradio import gr\nimport pmt\n\n\nclass\
+      \ blk(gr.sync_block):\n    \"\"\"\n    Free-running phase-continuous audio tone\
+      \ generator.\n    Frequency is controlled asynchronously via message input.\n\
+      \    \"\"\"\n    \n    def __init__(self, audio_samplerate=48000, min_freq=200,\
+      \ max_freq=5000, \n                 min_db=0, max_db=40, interpolation_samples=4800):\n\
+      \        \"\"\"\n        Args:\n            audio_samplerate: Output sample\
+      \ rate in Hz (default: 48000)\n            min_freq: Frequency in Hz for min_db\
+      \ or lower (default: 200)\n            max_freq: Frequency in Hz for max_db\
+      \ or higher (default: 5000)\n            min_db: Minimum dB value for mapping\
+      \ (default: 0)\n            max_db: Maximum dB value for mapping (default: 40)\n\
+      \            interpolation_samples: Number of samples over which to smooth frequency\
+      \ changes (default: 4800 = 100ms at 48kHz)\n        \"\"\"\n        gr.sync_block.__init__(\n\
+      \            self,\n            name='Audio Tone Generator',\n            in_sig=None,\
+      \  # No input stream, only message port\n            out_sig=[np.float32]\n\
+      \        )\n        \n        self.audio_samplerate = float(audio_samplerate)\n\
+      \        self.min_freq = float(min_freq)\n        self.max_freq = float(max_freq)\n\
+      \        self.min_db = float(min_db)\n        self.max_db = float(max_db)\n\
+      \        self.interpolation_samples = int(interpolation_samples)\n        \n\
+      \        # Phase accumulator for continuous phase\n        self.phase = 0.0\n\
+      \        \n        # Current and target frequencies\n        self.current_freq\
+      \ = min_freq\n        self.target_freq = min_freq\n        \n        # Interpolation\
+      \ state\n        self.interp_counter = 0\n        self.freq_step = 0.0\n   \
+      \     \n        # Register message port for receiving dB values\n        self.message_port_register_in(pmt.intern(\"\
+      db_in\"))\n        self.set_msg_handler(pmt.intern(\"db_in\"), self.handle_db_msg)\n\
+      \        \n    def handle_db_msg(self, msg):\n        \"\"\"Handle incoming\
+      \ dB value messages.\"\"\"\n        try:\n            # Extract the dB value\
+      \ from the message\n            db_value = pmt.to_double(msg)\n            \n\
+      \            # Convert dB to frequency\n            new_target_freq = self.db_to_freq(db_value)\n\
+      \            \n            # Debug output\n            print(f\"Received dB:\
+      \ {db_value:.2f}, Target freq: {new_target_freq:.1f} Hz\")\n            \n \
+      \           # If target frequency changed significantly, set up interpolation\n\
+      \            if abs(new_target_freq - self.target_freq) > 0.1:\n           \
+      \     self.target_freq = new_target_freq\n                self.interp_counter\
+      \ = self.interpolation_samples\n                if self.interpolation_samples\
+      \ > 0:\n                    self.freq_step = (self.target_freq - self.current_freq)\
+      \ / self.interpolation_samples\n                else:\n                    self.current_freq\
+      \ = self.target_freq\n        except Exception as e:\n            print(f\"\
+      Error handling dB message: {e}\")\n        \n    def db_to_freq(self, db_value):\n\
+      \        \"\"\"Convert dB value to frequency, with clamping.\"\"\"\n       \
+      \ db_clamped = np.clip(db_value, self.min_db, self.max_db)\n        freq = self.min_freq\
+      \ + (db_clamped - self.min_db) * \\\n               (self.max_freq - self.min_freq)\
+      \ / (self.max_db - self.min_db)\n        return freq\n    \n    def work(self,\
+      \ input_items, output_items):\n        \"\"\"\n        Generate audio samples\
+      \ continuously with phase-continuous frequency changes.\n        \"\"\"\n  \
+      \      out_audio = output_items[0]\n        \n        # Generate audio samples\n\
+      \        for i in range(len(out_audio)):\n            # Interpolate frequency\
+      \ if needed\n            if self.interp_counter > 0:\n                self.current_freq\
+      \ += self.freq_step\n                self.interp_counter -= 1\n            else:\n\
+      \                self.current_freq = self.target_freq\n            \n      \
+      \      # Generate sine wave sample\n            out_audio[i] = 0.3 * np.sin(2.0\
+      \ * np.pi * self.phase)\n            \n            # Update phase accumulator\n\
+      \            self.phase += self.current_freq / self.audio_samplerate\n     \
+      \       \n            # Keep phase in [0, 1) to prevent overflow\n         \
+      \   if self.phase >= 1.0:\n                self.phase -= 1.0\n        \n   \
+      \     return len(out_audio)\n"
+    affinity: ''
+    alias: ''
+    audio_samplerate: audio_samplerate
+    comment: ''
+    interpolation_samples: '2'
+    max_db: '40'
+    max_freq: '5000'
+    maxoutbuf: '0'
+    min_db: '0'
+    min_freq: '200'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('Audio Tone Generator', 'blk', [('audio_samplerate', '48000'), ('min_freq',
+      '200'), ('max_freq', '5000'), ('min_db', '0'), ('max_db', '40'), ('interpolation_samples',
+      '4800')], [('db_in', 'message', 1)], [('0', 'float', 1)], '\n    Free-running
+      phase-continuous audio tone generator.\n    Frequency is controlled asynchronously
+      via message input.\n    ', ['audio_samplerate', 'interpolation_samples', 'max_db',
+      'max_freq', 'min_db', 'min_freq'])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1688, 16.0]
+    rotation: 0
+    state: enabled
+- name: blocks_add_const_vxx_0
+  id: blocks_add_const_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: -db_ref
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1528, 196.0]
+    rotation: 0
+    state: enabled
+- name: blocks_complex_to_mag_squared_0
+  id: blocks_complex_to_mag_squared
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: fft_size
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [960, 332.0]
+    rotation: 0
+    state: enabled
+- name: blocks_moving_average_xx_0
+  id: blocks_moving_average_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    length: '100'
+    max_iter: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    scale: 1/50
+    type: float
+    vlen: fft_size
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1152, 308.0]
+    rotation: 0
+    state: enabled
+- name: blocks_nlog10_ff_0_0
+  id: blocks_nlog10_ff
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    k: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: '10'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1416, 196.0]
+    rotation: 0
+    state: enabled
+- name: blocks_nlog10_ff_0_0_0
+  id: blocks_nlog10_ff
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    k: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: '10'
+    vlen: fft_size
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1376, 316.0]
+    rotation: 0
+    state: enabled
+- name: blocks_null_sink_0_0
+  id: blocks_null_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    bus_structure_sink: '[[0,],]'
+    comment: ''
+    num_inputs: '1'
+    type: float
+    vlen: fft_size
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1664, 464.0]
+    rotation: 0
+    state: true
+- name: blocks_stream_to_vector_0
+  id: blocks_stream_to_vector
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: fft_size
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [544, 336.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
+      \ GRC will instantiate the first class it finds\nto get ports and parameters\
+      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
+      \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
+      from gnuradio import gr\n\n\n\n\nclass blk(gr.sync_block):  # other base classes\
+      \ are basic_block, decim_block, interp_block\n    \"\"\"Embedded Python Block\
+      \ example - a simple multiply const\"\"\"\n    \n    def __init__(self, vectorSize=512):\
+      \  # only default arguments here\n        \"\"\"arguments to this function show\
+      \ up as parameters in GRC\"\"\"\n        gr.sync_block.__init__(\n         \
+      \   self,\n            name='vector sum',   # will show up in GRC\n        \
+      \    in_sig=[(np.float32,vectorSize)],\n            out_sig=[(np.float32)]\n\
+      \n        )\n        self.vectorSize = vectorSize\n        self.maxbin = 0;\n\
+      \        # if an attribute with the same name as a parameter is found,\n   \
+      \     # a callback is registered (properties work, too).\n        #self.example_param\
+      \ = example_param\n\n    def work(self, input_items, output_items):\n      \
+      \  for vectorIndex in range(len(input_items[0])):\n            #sum = np.sum(input_items[0][vectorIndex])\n\
+      \            \n            maxValue = np.max(input_items[0][vectorIndex])\n\
+      \            maxbin = np.argmax(input_items[0][vectorIndex])\n\n           \
+      \ #\n            start = maxbin - 4\n            stop = maxbin + 5\n       \
+      \     if start < 0:\n                start = 0\n            if (stop > len(input_items[0][vectorIndex])):\n\
+      \                stop = input_items[0][vectorIndex] -1\n            sum = 0\n\
+      \            for i in range(start,stop):\n                sum += input_items[0][vectorIndex][i]\n\
+      \n            output_items[0][0] = sum\n          #  sum = (input_items[0][maxbin-2])\
+      \ + (input_items[0][maxbin-1]) + (input_items[0][maxbin]) + (input_items[0][maxbin+1])\
+      \ + (input_items[0][maxbin+2])\n            #print(f'{maxbin}  {sum}')\n   \
+      \       #  for sampleIndex in range(len(input_items[0][vectorIndex])):\n   \
+      \        #     output_items[0][vectorIndex][sampleIndex] = sum\n        \"\"\
+      \"example: multiply with constant\"\"\"\n        #output_items[0][:] = np.sum(input_items)\n\
+      \        #output_items[0][:] = input_items[0] \n        \n\n        return 1\
+      \ #\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vectorSize: fft_size
+  states:
+    _io_cache: ('vector sum', 'blk', [('vectorSize', '512')], [('0', 'float', 512)],
+      [('0', 'float', 1)], 'Embedded Python Block example - a simple multiply const',
+      ['vectorSize'])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1248, 188.0]
+    rotation: 0
+    state: enabled
+- name: fft_vxx_0
+  id: fft_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    fft_size: fft_size
+    forward: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nthreads: '1'
+    shift: 'True'
+    type: complex
+    window: window.flattop(fft_size)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [728, 300.0]
+    rotation: 0
+    state: enabled
+- name: freq_xlating_fir_filter_xxx_0
+  id: freq_xlating_fir_filter_xxx
+  parameters:
+    affinity: ''
+    alias: ''
+    center_freq: '100000'
+    comment: ''
+    decim: decimation
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: sample_rate
+    taps: ' firdes.low_pass(1,sample_rate,sample_rate/(4*decimation), transition_bw)'
+    type: ccc
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [296, 308.0]
+    rotation: 0
+    state: enabled
+- name: iio_pluto_source_0
+  id: iio_pluto_source
+  parameters:
+    affinity: ''
+    alias: ''
+    bandwidth: '200000'
+    bbdc: 'True'
+    buffer_size: '32768'
+    comment: ''
+    filter: ''
+    filter_source: '''Auto'''
+    fpass: '0'
+    frequency: rf_lo_freq
+    fstop: '0'
+    gain1: '''manual'''
+    len_tag_key: packet_len
+    manual_gain1: rx_gain
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    quadrature: 'False'
+    rfdc: 'True'
+    samplerate: sample_rate
+    type: fc32
+    uri: ip:192.168.2.1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [32, 236.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_number_sink_0
+  id: qtgui_number_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    autoscale: 'False'
+    avg: '0'
+    color1: ("black", "black")
+    color10: ("black", "black")
+    color2: ("black", "black")
+    color3: ("black", "black")
+    color4: ("black", "black")
+    color5: ("black", "black")
+    color6: ("black", "black")
+    color7: ("black", "black")
+    color8: ("black", "black")
+    color9: ("black", "black")
+    comment: ''
+    factor1: '1'
+    factor10: '1'
+    factor2: '1'
+    factor3: '1'
+    factor4: '1'
+    factor5: '1'
+    factor6: '1'
+    factor7: '1'
+    factor8: '1'
+    factor9: '1'
+    graph_type: qtgui.NUM_GRAPH_VERT
+    gui_hint: 0,0,3,1
+    label1: dB
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    max: '50'
+    min: '-50'
+    name: '"dBref"'
+    nconnections: '1'
+    type: float
+    unit1: dB
+    unit10: ''
+    unit2: ''
+    unit3: ''
+    unit4: ''
+    unit5: ''
+    unit6: ''
+    unit7: ''
+    unit8: ''
+    unit9: ''
+    update_time: '0.10'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1680, 164.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_vector_sink_f_0_0_0
+  id: qtgui_vector_sink_f
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'False'
+    average: '1.0'
+    color1: '"blue"'
+    color10: '"dark blue"'
+    color2: '"red"'
+    color3: '"green"'
+    color4: '"black"'
+    color5: '"cyan"'
+    color6: '"magenta"'
+    color7: '"yellow"'
+    color8: '"dark red"'
+    color9: '"dark green"'
+    comment: ''
+    grid: 'True'
+    gui_hint: 0,1,1,2
+    label1: '""'
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '"Spectrum"'
+    nconnections: '1'
+    ref_level: db_ref
+    showports: 'False'
+    update_time: '0.10'
+    vlen: fft_size
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    x_axis_label: '"Freq"'
+    x_start: '0'
+    x_step: '.1'
+    x_units: '""'
+    y_axis_label: '"dB"'
+    y_units: '""'
+    ymax: '60'
+    ymin: '-80'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1680, 284.0]
+    rotation: 0
+    state: enabled
+- name: stream_to_msg_0
+  id: epy_block
+  parameters:
+    _source_code: "\"\"\"\nStream to Message converter\nConverts float stream samples\
+      \ to PMT messages\n\"\"\"\n\nimport numpy as np\nfrom gnuradio import gr\nimport\
+      \ pmt\n\n\nclass blk(gr.sync_block):\n    \"\"\"\n    Converts stream samples\
+      \ to messages.\n    Decimates the stream and sends every Nth sample as a message.\n\
+      \    \"\"\"\n    \n    def __init__(self, decimation=100):\n        \"\"\"\n\
+      \        Args:\n            decimation: Send a message every N samples (default:\
+      \ 100)\n        \"\"\"\n        gr.sync_block.__init__(\n            self,\n\
+      \            name='Stream to Message',\n            in_sig=[np.float32],\n \
+      \           out_sig=None\n        )\n        \n        self.decimation = int(decimation)\n\
+      \        self.counter = 0\n        \n        # Register message output port\n\
+      \        self.message_port_register_out(pmt.intern(\"msg_out\"))\n        \n\
+      \    def work(self, input_items, output_items):\n        \"\"\"\n        Convert\
+      \ stream samples to messages.\n        \"\"\"\n        in_data = input_items[0]\n\
+      \        \n        for value in in_data:\n            self.counter += 1\n  \
+      \          if self.counter >= self.decimation:\n                self.counter\
+      \ = 0\n                # Send the value as a PMT message\n                msg\
+      \ = pmt.from_double(float(value))\n                self.message_port_pub(pmt.intern(\"\
+      msg_out\"), msg)\n                print(f\"Stream->Msg: Sent dB value: {value:.2f}\"\
+      )\n        \n        return len(in_data)\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    decimation: '10'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('Stream to Message', 'blk', [('decimation', '100')], [('0', 'float',
+      1)], [('msg_out', 'message', 1)], '\n    Converts stream samples to messages.\n    Decimates
+      the stream and sends every Nth sample as a message.\n    ', ['decimation'])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1416, 56.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [audio_tone_gen_0, '0', audio_sink_0, '0']
+- [blocks_add_const_vxx_0, '0', qtgui_number_sink_0, '0']
+- [blocks_add_const_vxx_0, '0', stream_to_msg_0, '0']
+- [blocks_complex_to_mag_squared_0, '0', blocks_moving_average_xx_0, '0']
+- [blocks_moving_average_xx_0, '0', blocks_nlog10_ff_0_0_0, '0']
+- [blocks_moving_average_xx_0, '0', epy_block_0, '0']
+- [blocks_nlog10_ff_0_0, '0', blocks_add_const_vxx_0, '0']
+- [blocks_nlog10_ff_0_0_0, '0', blocks_null_sink_0_0, '0']
+- [blocks_nlog10_ff_0_0_0, '0', qtgui_vector_sink_f_0_0_0, '0']
+- [blocks_stream_to_vector_0, '0', fft_vxx_0, '0']
+- [epy_block_0, '0', blocks_nlog10_ff_0_0, '0']
+- [fft_vxx_0, '0', blocks_complex_to_mag_squared_0, '0']
+- [freq_xlating_fir_filter_xxx_0, '0', blocks_stream_to_vector_0, '0']
+- [iio_pluto_source_0, '0', freq_xlating_fir_filter_xxx_0, '0']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.9.2

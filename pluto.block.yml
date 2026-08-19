@@ -1,0 +1,30 @@
+id: pluto
+label: QT GUI Pluto Antenna Range
+category: '[GRC Hier Blocks]'
+flags: need_qt_gui
+
+parameters:
+-   id: gui_hint
+    label: GUI Hint
+    dtype: gui_hint
+    hide: part
+
+inputs: []
+
+outputs: []
+
+templates:
+    imports: 'from pluto import pluto  # grc-generated hier_block'
+    make: 'pluto()
+
+        self.connect(self.${id})
+
+        <% win = ''self.%s''%id %>
+
+        ${ gui_hint() % win }'
+    callbacks: []
+
+documentation: /home/aflowers/pluto-antenna-range/pluto.py
+grc_source: /home/aflowers/pluto-antenna-range/pluto-antenna-range.grc
+
+file_format: 1
