@@ -8,10 +8,14 @@ This flowgraph receives signals from an ADALM Pluto SDR and provides real-time s
 
 ## Features
 
-- Real-time FFT spectrum analysis for aid in tuning the signal source.
+- Real-time FFT spectrum analysis for aid in tuning the signal source
 - Signal strength measurement in dB
-- Audio tone feedback
+- Audio tone feedback with logarithmic frequency mapping
+  - 200 Hz at -10 dB (or lower)
+  - 5000 Hz at +40 dB (or higher)
+  - Exponential frequency scaling for better sensitivity at low signal levels
 - Phase-continuous audio generation (no clicks or pops)
+- Smooth frequency transitions (25ms interpolation time by default)
 - Adjustable reference antenna calibration
 - Qt GUI with spectrum display and numerical readout
 
@@ -65,9 +69,17 @@ python3 pluto.py
 - Default LO frequency: 2073.62 MHz (this is near 10.368 GHz using a 5x subharmonic) for 10 GHz operation.  Other freuqnecies should be tuned directly through the GUI control
 
 ### Audio Feedback
-- Minimum frequency: 200 Hz (at 0 dB or lower)
-- Maximum frequency: 5000 Hz (at 40 dB or higher)
-- Interpolation time: 25ms (adjustable in `pluto-antenna-range.grc`)
+- **Frequency mapping**: Logarithmic (exponential frequency vs. dB)
+  - Minimum: 200 Hz at -10 dB or lower
+  - Maximum: 5000 Hz at +40 dB or higher
+  - Formula: `freq = 200 * 25^((dB + 10) / 50)`
+- **Interpolation time**: 25ms (adjustable via `interpolation_samples` parameter)
+  - Provides smooth frequency transitions without clicks
+  - Can be reduced for faster response or increased for smoother transitions
+- **Why logarithmic?**
+  - Better sensitivity at low signal levels
+  - Matches human pitch perception
+  - Easier to distinguish small changes in weak signals
 
 ### Signal Processing
 - Sample rate: 500 kHz

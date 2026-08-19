@@ -209,7 +209,7 @@ class pluto(gr.top_block, Qt.QWidget):
         self.blocks_moving_average_xx_0 = blocks.moving_average_ff(100, (1/50), 1, fft_size)
         self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(fft_size)
         self.blocks_add_const_vxx_0 = blocks.add_const_ff((-db_ref))
-        self.audio_tone_gen_0 = audio_tone_gen_0.blk(audio_samplerate=audio_samplerate, min_freq=200, max_freq=5000, min_db=0, max_db=40, interpolation_samples=2)
+        self.audio_tone_gen_0 = audio_tone_gen_0.blk(audio_samplerate=audio_samplerate, min_freq=200, max_freq=5000, min_db=-10, max_db=40, interpolation_samples=2)
         self.audio_sink_0 = audio.sink(audio_samplerate, '', True)
 
 

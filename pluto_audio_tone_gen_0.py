@@ -73,10 +73,23 @@ class blk(gr.sync_block):
             print(f"Error handling dB message: {e}")
         
     def db_to_freq(self, db_value):
-        """Convert dB value to frequency, with clamping."""
+        """Convert dB value to frequency using logarithmic mapping, with clamping."""
         db_clamped = np.clip(db_value, self.min_db, self.max_db)
-        freq = self.min_freq + (db_clamped - self.min_db) * \
-               (self.max_freq - self.min_freq) / (self.max_db - self.min_db)
+        
+        # Logarithmic mapping: frequency increases exponentially with dB
+        # This makes lower dB values more distinguishable
+        # Formula: freq = min_freq * (max_freq/min_freq)^((db-min_db)/(max_db-min_db))
+        
+        if self.max_db == self.min_db:
+            return self.min_freq
+        
+        # Normalized position in dB range [0, 1]
+        normalized_db = (db_clamped - self.min_db) / (self.max_db - self.min_db)
+        
+        # Exponential mapping (logarithmic in frequency space)
+        freq_ratio = self.max_freq / self.min_freq
+        freq = self.min_freq * (freq_ratio ** normalized_db)
+        
         return freq
     
     def work(self, input_items, output_items):
